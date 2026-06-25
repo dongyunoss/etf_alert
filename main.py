@@ -35,13 +35,24 @@ def job():
     logger.info("%d개 ETF 알림 전송 완료", len(unseen))
 
 
-def main():
-    db.init_db()
-
-    # --run-now 플래그로 즉시 실행 (테스트용)
-    if "--run-now" in sys.argv:
-        job()
+def job_no_db():
+    """GitHub Actions용: DB 없이 오늘 신규 상장 ETF를 바로 전송."""
+    logger.info("ETF 신규 상장 확인 시작 (DB 없음)")
+    new_etfs = get_new_listings()
+    if not new_etfs:
+        logger.info("오늘 신규 상장 ETF 없음")
         return
+    send_message(format_etf_message(new_etfs))
+    logger.info("%d개 ETF 알림 전송 완료", len(new_etfs))
+
+
+def main():
+    # GitHub Actions: DB 없이 즉시 실행
+    if "--run-now" in sys.argv:
+        job_no_db()
+        return
+
+    db.init_db()
 
     scheduler = BlockingScheduler(timezone="Asia/Seoul")
     scheduler.add_job(
